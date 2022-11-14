@@ -1,15 +1,20 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
+using UnityEngine.SceneManagement;
 
 public class RubyController : MonoBehaviour
 {
     public float speed = 3.0f;
 
-    public int maxHealth = 5;
+    public int maxHealth = 4;
     public float timeInvincible = 2.0f;
 
     public GameObject projectilePrefab;
+    public int ammo { get { return currentAmmo; }}
+    public int maxAmmo = 4;
+    int currentAmmo;
 
     public int health { get { return currentHealth; }}
     int currentHealth;
@@ -24,10 +29,29 @@ public class RubyController : MonoBehaviour
     Animator animator;
     Vector2 lookDirection = new Vector2(1,0);
 
+    public TextMeshProUGUI ammoText;
+
+    public TextMeshProUGUI fixedText;
+    private int scoreFixed = 0;
+
     AudioSource audioSource;
 
     public AudioClip throwSound;
     public AudioClip hitSound;
+    public AudioClip winSound;
+    public AudioClip loseSound;
+
+    public AudioClip backgroundSound;
+
+    public ParticleSystem hitEffect;
+    public ParticleSystem healthEffect;
+
+    public GameObject WinTextObject;
+    public GameObject LoseTextObject;
+    public GameObject JambiTextObject;
+    bool gameOver;
+    public static int level;
+
 
     // Start is called before the first frame update
     void Start()
@@ -36,9 +60,26 @@ public class RubyController : MonoBehaviour
 
         currentHealth = maxHealth;
 
+        currentAmmo = maxAmmo;
+
         animator = GetComponent<Animator>();
 
         audioSource= GetComponent<AudioSource>();
+
+        fixedText.text = "Fixed Robots: " + scoreFixed.ToString() + "/4";
+
+        WinTextObject.SetActive(false);
+
+        LoseTextObject.SetActive(false);
+
+        JambiTextObject.SetActive(false);
+
+        gameOver = false;
+
+        level = 1;
+
+        audioSource.clip = backgroundSound;
+        audioSource.Play();
     }
 
     public void PlaySound(AudioClip clip)
@@ -73,6 +114,12 @@ public class RubyController : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.C))
         {
           Launch();
+
+          if (currentAmmo > 0)
+          {
+            ChangeAmmo(-1);
+            AmmoText();
+          }
         }
 
         if (Input.GetKeyDown(KeyCode.X))
@@ -85,6 +132,22 @@ public class RubyController : MonoBehaviour
                 {
                     character.DisplayDialog();
                 }              
+            }
+            if (scoreFixed >= 4)
+            {
+                JambiTextObject.SetActive(false);
+                SceneManager.LoadScene("Level 2");
+                level = 2;
+                
+                
+            }
+        }
+        
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            if (gameOver == true)
+            {
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
             }
         }
     }
@@ -107,16 +170,52 @@ public class RubyController : MonoBehaviour
 
                 isInvincible = true;
                 invincibleTimer = timeInvincible;
-
+                Instantiate(hitEffect, transform.position + Vector3.up * 0.5f, Quaternion.identity);
                 PlaySound(hitSound);
+
+                animator.SetTrigger("Hit");
         }
+
+        if (amount > 0)
+        {
+            healthEffect = Instantiate(healthEffect, rigidbody2d.position + Vector2.up * 0.5f, Quaternion.identity);
+        }
+
+        if (currentHealth <= 0)
+        {
+            LoseTextObject.SetActive(true);
+
+            audioSource.clip = backgroundSound;
+            audioSource.Stop();
+
+            audioSource.clip = loseSound;
+            audioSource.Play();
+
+            transform.position = new Vector3(-5f, 0f, -100f);
+            speed = 0;
+            Destroy(gameObject.GetComponent<SpriteRenderer>());
+            gameOver = true;
+        }
+  
         currentHealth = Mathf.Clamp(currentHealth + amount, 0, maxHealth);
 
         UIHealthBar.instance.SetValue(currentHealth / (float)maxHealth);
     }
 
+public void ChangeAmmo(int amount)
+{
+    currentAmmo = Mathf.Abs(currentAmmo + amount);
+    Debug.Log("Ammo: " + currentAmmo);
+}
+
+public void AmmoText()
+{
+    ammoText.text = "Ammo: " + currentAmmo.ToString();
+}
     void Launch()
     {
+        if (currentAmmo > 0)
+        {
         GameObject projectileObject = Instantiate(projectilePrefab, rigidbody2d.position + Vector2.up * 0.5f, Quaternion.identity);
 
         Projectile projectile = projectileObject.GetComponent<Projectile>();
@@ -125,5 +224,35 @@ public class RubyController : MonoBehaviour
         animator.SetTrigger("Launch");
 
         PlaySound(throwSound);
+        }
+    }
+
+    public void FixedRobots(int amount)
+    {
+        scoreFixed += amount;
+        fixedText.text = "Fixed Robots: " + scoreFixed.ToString() + "/4";
+
+        Debug.Log("Fixed Robots: " + scoreFixed);
+
+        if (level == 1)
+        {
+            if (scoreFixed >= 4)
+            {
+                audioSource.clip = backgroundSound;
+                audioSource.Stop();
+
+                audioSource.clip = winSound;
+                audioSource.Play();
+
+                WinTextObject.SetActive(true);
+
+                transform.position = new Vector3(-5f, 0f, -100f);
+                speed = 0;
+
+                Destroy(gameObject.GetComponent<SpriteRenderer>());
+
+                gameOver = true;
+            }
+        }
     }
 }

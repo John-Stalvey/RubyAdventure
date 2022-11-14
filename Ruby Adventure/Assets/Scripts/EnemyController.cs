@@ -17,12 +17,26 @@ public class EnemyController : MonoBehaviour
 
     Animator animator;
 
+    AudioSource audioSource;
+    public AudioClip fixedSound;
+    public AudioClip brokenSound;
+
+    private RubyController rubyController;
+
     // Start is called before the first frame update
     void Start()
     {
         rigidbody2D = GetComponent<Rigidbody2D>();
         timer = changeTime;
         animator = GetComponent<Animator>();
+        audioSource = GetComponent<AudioSource>();
+
+        audioSource.clip = brokenSound;
+        audioSource.loop = true;
+        audioSource.Play();
+
+        GameObject rubyControllerObject = GameObject.FindWithTag("Player");
+        rubyController = rubyControllerObject.GetComponent<RubyController>();
     }
 
     void Update()
@@ -80,6 +94,17 @@ public class EnemyController : MonoBehaviour
         broken = false;
         rigidbody2D.simulated = false;
 
+        animator.SetTrigger("Fixed");
+
         smokeEffect.Stop();
+
+        audioSource.clip = fixedSound;
+        audioSource.loop = false;
+        audioSource.Play();
+
+        if (rubyController != null)
+        {
+            rubyController.FixedRobots(1);
+        }
     }
 }

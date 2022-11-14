@@ -32,7 +32,12 @@ void OnCollisionEnter2D(Collision2D other)
     {
         controller.Fix();
     }
-    
+
+    HardEnemyController h = other.collider.GetComponent<HardEnemyController>();
+    if (h != null)
+    {
+        h.Fix();
+    } 
     Destroy(gameObject);
 }
 }
